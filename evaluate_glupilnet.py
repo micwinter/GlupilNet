@@ -298,7 +298,8 @@ def evaluate_glupil_per_video(path_vid, args, model):
             return True
 
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    vid_out = cv2.VideoWriter(path_vid_out, fourcc, int(FR), (int(W), int(H)))
+    if args.save_overlay or args.evaluate_performance:
+        vid_out = cv2.VideoWriter(path_vid_out, fourcc, int(FR), (int(W), int(H)))
 
     # Dictionary to save output ellipses
     ellipse_out_dict = {}
@@ -343,7 +344,8 @@ def evaluate_glupil_per_video(path_vid, args, model):
             else:
                 # Generate visuals
                 frame_overlayed_with_op = plot_segmap_ellpreds(frame, seg_map, pupil_ellipse, iris_ellipse)
-                vid_out.write(frame_overlayed_with_op[..., ::-1])
+                if args.save_overlay:
+                    vid_out.write(frame_overlayed_with_op[..., ::-1])
 
             # Append to dictionary
             ellipse_out_dict[counter] = {'pupil': pupil_ellipse, 'iris': iris_ellipse}
@@ -359,7 +361,8 @@ def evaluate_glupil_per_video(path_vid, args, model):
         final_error = np.mean(np.array(accumulate_errors))
         print(f'Final error: {final_error}')
     print('releasing video object')
-    vid_out.release()
+    if args.save_overlay or args.evaluate_performance:
+        vid_out.release()
     vid_obj.release()
     pbar.close()
 
