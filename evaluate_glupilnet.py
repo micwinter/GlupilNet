@@ -161,7 +161,7 @@ def preprocess_frame(img, op_shape, align_width=True):
     return img, scale_shift
 
 #%% Forward operation on network
-def evaluate_ellseg_on_image(frame, model):
+def evaluate_glupil_on_image(frame, model):
 
     assert len(frame.shape) == 4, 'Frame must be [1,1,H,W]'
 
@@ -260,7 +260,7 @@ def rescale_to_original(seg_map, pupil_ellipse, iris_ellipse, scale_shift, orig_
     return seg_map, pupil_ellipse, iris_ellipse
 
 #%% Definition for processing per video
-def evaluate_ellseg_per_video(path_vid, args, model):
+def evaluate_glupil_per_video(path_vid, args, model):
     path_dir, full_file_name = os.path.split(path_vid)
     file_name = os.path.splitext(full_file_name)[0]
 
@@ -287,9 +287,9 @@ def evaluate_ellseg_per_video(path_vid, args, model):
         # Load them
         groundtruth = load_groundtruth(path_dir, file_name)
         accumulate_errors = []
-        path_vid_out = os.path.join(path_dir, file_name+'_ellseg_evaluate.mp4')
+        path_vid_out = os.path.join(path_dir, file_name+'_glupil_evaluate.mp4')
     else:
-        path_vid_out = os.path.join(path_dir, file_name+'_ellseg.mp4')
+        path_vid_out = os.path.join(path_dir, file_name+'_glupil.mp4')
 
     if not args.overwrite:
         # Check if path_vid_out already exists
@@ -324,7 +324,7 @@ def evaluate_ellseg_per_video(path_vid, args, model):
             input_tensor = frame_scaled_shifted.unsqueeze(0).to(device)
 
             # Run the prediction network
-            seg_map, latent, pupil_ellipse, iris_ellipse = evaluate_ellseg_on_image(input_tensor, model)
+            seg_map, latent, pupil_ellipse, iris_ellipse = evaluate_glupil_on_image(input_tensor, model)
 
             # Return ellipse predictions back to original dimensions
             seg_map, pupil_ellipse, iris_ellipse = rescale_to_original(seg_map,
@@ -385,10 +385,9 @@ if __name__=='__main__':
         model.cuda()
 
     #%% Read in each video
-    #path_obj = Path(args.path2data).rglob('*.mp4')
     path_obj = Path(args.path2data).rglob(f'*.{args.vid_ext}')
 
     for path_vid in path_obj:
-        if '_ellseg' not in str(path_vid):
-            evaluate_ellseg_per_video(path_vid, args, model)
+        if '_glupil' not in str(path_vid):
+            evaluate_glupil_per_video(path_vid, args, model)
 
