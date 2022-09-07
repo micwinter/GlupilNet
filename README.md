@@ -4,18 +4,19 @@ Forked from [Ellseg](https://bitbucket.org/RSKothari/ellseg/src/master/) by Raks
 # Annotate pupil locations on eyetracking videos
 For quick inference on your own eye videos, please use `evaluate_glupilnet.py` as `python evaluate_glupilnet.py --path2data=${PATH_EYE_VIDEOS} --vid_ext=<VIDEO_EXT> --ellseg_ellipses=1 --save_overlay`. 
 
-This will run the pretrained GlupilNet on the eye videos in the given path and produce eye videos with the extension `'*_glupil.mp4'`, where pupil predictions are shown in the video. In addition, it will also produce a a numpy file with pupil coordinate predictions with the extension `'*_pred.npy'`.
+This will run the pretrained GlupilNet on the eye videos in the given path and produce eye videos with the extension `'*_glupil.mp4'`, where pupil predictions are shown in the video. In addition, it will also produce a numpy file with pupil coordinate predictions with the extension `'*_pred.npy'`.
 
 Example beginning file structure:
 * `${path_eye_videos}`
-		* eye0.mp4
-		* eye1.mp4
-	* exp_name_1
-		* eye0.mp4
+  * exp_name_0 (can be anything)  
+    * eye0.mp4
+    * eye1.mp4
+  * exp_name_1
+    * eye0.mp4
 
 After running `evaluate_glupilnet.py`:
 * `${path_eye_videos}`
-	* exp_name_0 (can be anything)
+	* exp_name_0
 		* eye0.mp4
 		* eye1.mp4
       * eye0_glupil.mp4
