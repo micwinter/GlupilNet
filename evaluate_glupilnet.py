@@ -4,6 +4,7 @@
 Created on Fri Jan 29 03:34:22 2021
 
 @author: rakshit
+# 20220731: Modified by MW to evaluate on groundtruth.
 """
 
 import os
@@ -47,6 +48,10 @@ def parse_args():
                         help='use ellseg proposed ellipses, if FALSE, it will fit an ellipse to segmentation mask')
     parser.add_argument('--skip_ransac', type=int, default=0,
                         help='if using ElliFit, it skips outlier removal')
+    parser.add_argument('--evaluate_performance', action='store_true',
+                        help='evaluate performance of the model compared to manual annotations. Will raise error if groundtruth annotations not found.')
+    parser.add_argument('--overwrite', action='store_true',
+                        help='overwrite existing files')
 
     args = parser.parse_args()
     opt = vars(args)
@@ -54,6 +59,67 @@ def parse_args():
     print('parsed arguments:')
     pprint(opt)
     return args
+
+
+def load_groundtruth(path_dir, file_name):
+    """
+    Load groundtruth annotations. First check if they exist.
+    Used to evaluate model performance of the model.
+    """
+    groundtruth_filepath = os.path.join(path_dir, file_name+' pupils.npy')
+    groundtruth = np.load(groundtruth_filepath)
+
+    return groundtruth
+
+def plot_evaluation(frame, pupil_ellipse, groundtruth):
+    import matplotlib.pyplot as plt
+    from helperfunctions import plot_pupil_ellipse
+
+    fig = plt.figure()
+
+    plt.imshow(plot_pupil_ellipse(frame, pupil_ellipse))
+    plt.scatter(int(pupil_ellipse[0]), int(pupil_ellipse[1]), marker='+', color='r', s=130, alpha=0.7, label='prediction')
+    plt.scatter(groundtruth[0], groundtruth[1], marker='^', color='orange', s=130, alpha=0.7, label='groundtruth')
+    plt.axis('off')
+    plt.legend()
+    # redraw the canvas
+    fig.canvas.draw()
+
+    # Now we can save it to a numpy array.
+    img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+    img = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+
+    # img is rgb, convert to opencv's default bgr
+    img = cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
+    plt.close()
+
+    return img
+
+def plot_evaluation_faster(frame, pupil_ellipse, groundtruth):
+    # TODO: Make this faster
+    from helperfunctions import plot_pupil_ellipse
+
+    image = plot_pupil_ellipse(frame, pupil_ellipse)
+
+    image = cv2.drawMarker(image, (int(pupil_ellipse[0]), int(pupil_ellipse[1])), color=(255, 0, 0), markerType=cv2.MARKER_CROSS, markerSize=10, thickness=2)
+    image = cv2.drawMarker(image, (int(groundtruth[0]), int(groundtruth[1])), color=(0, 255, 0), markerType=cv2.MARKER_TRIANGLE_UP, markerSize=10, thickness=2)
+
+    # Text legend at top right
+    image = cv2.putText(image, text='groundtruth', org=(200,40),
+            fontFace= cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.4, color=(0,255,0),
+            thickness=1) 
+    image = cv2.putText(image, text='prediction', org=(200,20),
+            fontFace= cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.4, color=(255,0,0),
+            thickness=1)
+
+    return image
+
+def compute_error(pupil_ellipse, groundtruth, dist='euclidean'):
+    """Compute error between predicted and groundtruth coordinates"""
+    if dist=='euclidean':
+        error = np.sqrt(((pupil_ellipse[0] - groundtruth[0])**2) + ((pupil_ellipse[1] - groundtruth[1])**2))
+    else: raise NotImplementedError
+    return error
 
 #%% Preprocessing functions and module
 # Input frames must be resized to 320X240
@@ -216,7 +282,21 @@ def evaluate_ellseg_per_video(path_vid, args, model):
     H  = vid_obj.get(cv2.CAP_PROP_FRAME_HEIGHT)
     W  = vid_obj.get(cv2.CAP_PROP_FRAME_WIDTH)
 
-    path_vid_out = os.path.join(path_dir, file_name+'_ellseg.mp4')
+    if args.evaluate_performance:
+        # Find groundtruth annotations
+        # Load them
+        groundtruth = load_groundtruth(path_dir, file_name)
+        accumulate_errors = []
+        path_vid_out = os.path.join(path_dir, file_name+'_ellseg_evaluate.mp4')
+    else:
+        path_vid_out = os.path.join(path_dir, file_name+'_ellseg.mp4')
+
+    if not args.overwrite:
+        # Check if path_vid_out already exists
+        if os.path.exists(path_vid_out):
+            print('Video already exists, skipping: {}'.format(path_vid_out))
+            return True
+
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     vid_out = cv2.VideoWriter(path_vid_out, fourcc, int(FR), (int(W), int(H)))
 
@@ -230,14 +310,6 @@ def evaluate_ellseg_per_video(path_vid, args, model):
     while ret:
         try:
             ret, frame = vid_obj.read()
-            # if counter == 16619:
-            #     print('stuck here')
-            #     import ipdb; ipdb.set_trace()
-            #     print('stuck here')
-
-
-            # Convert to uint8 to avoid error
-            # frame = frame.astype('uint8')  # THIS DOES NOT WORK BECAUSE FRAME IS NONETYPE OBJECT
 
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -261,9 +333,17 @@ def evaluate_ellseg_per_video(path_vid, args, model):
                                                                     scale_shift,
                                                                     frame.shape)
 
-            # Generate visuals
-            frame_overlayed_with_op = plot_segmap_ellpreds(frame, seg_map, pupil_ellipse, iris_ellipse)
-            vid_out.write(frame_overlayed_with_op[..., ::-1])
+            if args.evaluate_performance:
+                # frame_overlayed = plot_evaluation(frame, pupil_ellipse, groundtruth[counter])
+                frame_overlayed = plot_evaluation_faster(frame, pupil_ellipse, groundtruth[counter])
+                vid_out.write(frame_overlayed[..., ::-1])
+                error = compute_error(pupil_ellipse, groundtruth[counter], dist='euclidean')
+                accumulate_errors += [error]
+
+            else:
+                # Generate visuals
+                frame_overlayed_with_op = plot_segmap_ellpreds(frame, seg_map, pupil_ellipse, iris_ellipse)
+                vid_out.write(frame_overlayed_with_op[..., ::-1])
 
             # Append to dictionary
             ellipse_out_dict[counter] = {'pupil': pupil_ellipse, 'iris': iris_ellipse}
@@ -275,6 +355,9 @@ def evaluate_ellseg_per_video(path_vid, args, model):
             print(f'Broke loop early at frame {counter} due to an issue. Check this later.')
             break
 
+    if args.evaluate_performance:
+        final_error = np.mean(np.array(accumulate_errors))
+        print(f'Final error: {final_error}')
     print('releasing video object')
     vid_out.release()
     vid_obj.release()

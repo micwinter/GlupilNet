@@ -516,6 +516,23 @@ def get_ellipse_info(param, H, cond):
         elPts = -np.ones((8, 2))
     return elPts, norm_param
 
+
+def plot_pupil_ellipse(image, pupil_ellipse):
+    """Subset of plot_segmap_ellpreds"""
+    # Sketch pupil ellipse
+    out_image = np.stack([image]*3, axis=2)
+    [rr_p, cc_p] = draw.ellipse_perimeter(int(pupil_ellipse[1]),
+                                            int(pupil_ellipse[0]),
+                                            int(pupil_ellipse[3]),
+                                            int(pupil_ellipse[2]),
+                                            orientation=pupil_ellipse[4])
+
+    rr_p = rr_p.clip(6, image.shape[0]-6)
+    cc_p = cc_p.clip(6, image.shape[1]-6)
+    out_image[rr_p, cc_p, ...] = np.array([255, 0, 0])
+
+    return out_image
+
 # Plot segmentation output, pupil and iris ellipses
 def plot_segmap_ellpreds(image, seg_map, pupil_ellipse, iris_ellipse):
     loc_iris = seg_map == 1

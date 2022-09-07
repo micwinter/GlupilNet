@@ -1,3 +1,4 @@
+*.code-workspace
 *ffs_gui
 *.pyc
 *.npy
