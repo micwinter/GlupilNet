@@ -32,7 +32,7 @@ def parse_args():
                         help='path to eye videos')
     parser.add_argument('--save_maps', type=int, default=0,
                         help='save segmentation maps')
-    parser.add_argument('--save_overlay', type=int, default=1,
+    parser.add_argument('--save_overlay', action='store_true',
                         help='save output overlay')
     parser.add_argument('--vid_ext', type=str, default='mp4',
                         help='process videos with given extension')
@@ -291,10 +291,15 @@ def evaluate_glupil_per_video(path_vid, args, model):
     else:
         path_vid_out = os.path.join(path_dir, file_name+'_glupil.mp4')
 
+    outpath = os.path.join(path_dir, file_name+'_pred.npy')
+
     if not args.overwrite:
         # Check if path_vid_out already exists
         if os.path.exists(path_vid_out):
             print('Video already exists, skipping: {}'.format(path_vid_out))
+            return True
+        elif os.path.exists(outpath):
+            print('Predictions already exist, skipping: {}'.format(outpath))
             return True
 
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
@@ -365,8 +370,6 @@ def evaluate_glupil_per_video(path_vid, args, model):
         vid_out.release()
     vid_obj.release()
     pbar.close()
-
-    outpath = os.path.join(path_dir, file_name+'_pred.npy')
 
     print(f'saving output .npy to {outpath}')
     # Save out ellipse dictionary

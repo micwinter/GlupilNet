@@ -33,6 +33,7 @@ Note the other flags and their (default values)
 
 
 * `--vid_ext` (mp4) - Look out for videos with user decided extension
+* `--overwrite` (False) - Overwrite existing files
 * `--save_overlay` (True) - Save out segmentation output map on eye video, produces video with extension `*_glupil.mp4`
 * `--eval_on_cpu` (False) - If no GPU available or found, GlupilNet can also be evaluated using CPU
 * `--evaluate_performance` (False) - Load groundtruth pupil coordinates (`*_pupils.npy`) and evaluate GlupilNet performance via euclidean distance. Produces a video with both prediction and groundtruth pupil annotations with the extension `*_glupil_evaluate.mp4`. Will raise error if groundtruth annotations not found, in the form `'* pupils.npy'`.
