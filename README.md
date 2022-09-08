@@ -28,6 +28,12 @@ After running `evaluate_glupilnet.py`:
       * eye0_glupil.mp4
       * eye0_pred.npy
 
+In the output predictions file, the values mean:
+* `pupil_ellipse[0] - center x coordinate`
+* `pupil_ellipse[1] - center y coordinate`
+* `pupil_ellipse[2] - x radius`
+* `pupil_ellipse[3] - y`
+* `pupil_ellipse[4] - orientation`
 
 Note the other flags and their (default values)
 
