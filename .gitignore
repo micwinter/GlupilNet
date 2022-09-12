@@ -1,3 +1,4 @@
+*.egg-info/*
 *.code-workspace
 *ffs_gui
 *.pyc

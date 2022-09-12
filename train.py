@@ -153,6 +153,7 @@ if __name__ == '__main__':
         trainObj.imList = trainObj.imList[:args.overfit*args.batchsize,:]
         validObj.imList = validObj.imList[:args.overfit*args.batchsize,:]
 
+    # TODO: Add data * image augmentation - maybe just start with blurred and low contrast transforms with the same pupil and iris centers
     trainloader = DataLoader(trainObj,
                              batch_size=args.batchsize,
                              shuffle=True,
@@ -179,7 +180,7 @@ if __name__ == '__main__':
         alpha = linVal(epoch, (0, args.epochs), (0, 1), 0)
 
         for bt, batchdata in enumerate(trainloader):
-            img, labels, spatialWeights, distMap, pupil_center, iris_center, elNorm, cond, imInfo = batchdata
+            img, labels, spatialWeights, distMap, pupil_center, iris_center, elNorm, cond, imInfo = batchdata  # I think these are the groundtruth training data
 
             model.toggle = False
             optimizer.zero_grad()
